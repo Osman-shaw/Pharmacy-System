@@ -1,0 +1,13 @@
+{
+  "name": "wellbody",
+  "version": "1.0.0",
+  "description": "backend logic",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["healthy","body","is","a","healthy","life!"
+  ],
+  "author": "Osman Shaw",
+  "license": "ISC"
+}
