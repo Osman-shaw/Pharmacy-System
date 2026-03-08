@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Mic, MicOff, Loader2, Volume2, Languages } from "lucide-react"
 import { Button } from "@/components/ui/button"

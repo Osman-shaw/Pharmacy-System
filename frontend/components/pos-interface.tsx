@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import React from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { createSale } from "@/lib/salesApi"
-import { getProfile } from "@/lib/posApi"
+import { createCheckoutSession, createUssdCode } from "@/lib/paymentApi"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,31 +20,64 @@ interface CartItem {
   quantity: number
   price: number
   subtotal: number
+  batchNumber?: string
+  expiryDate?: string
 }
 
 interface POSInterfaceProps {
   medicines: any[]
   customers: any[]
-  userId: string
+  prescriptions?: any[]
+  user?: { id?: string; _id?: string; role?: string; pharmacistLicense?: string } | null
 }
 
-export function POSInterface({ medicines, customers, userId }: POSInterfaceProps) {
+export function POSInterface({ medicines, customers, prescriptions = [], user }: POSInterfaceProps) {
+  const userId = user?.id ?? user?._id ?? ""
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
   const [customerId, setCustomerId] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("cash")
-  const [saleType, setSaleType] = useState("OTC") // Rx, OTC, Service
+  const [saleType, setSaleType] = useState("OTC")
+  const [prescriptionId, setPrescriptionId] = useState("")
   const [discount, setDiscount] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ussdResult, setUssdResult] = useState<{ ussdCode: string; instructions: string; saleId: string } | null>(null)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const success = searchParams.get("monime_success")
+    const ref = searchParams.get("ref")
+    if (success === "1" && ref) {
+      setCart([])
+      setCustomerId("")
+      setPrescriptionId("")
+      setDiscount(0)
+      setUssdResult(null)
+      router.replace("/dashboard/pos", { scroll: false })
+    }
+  }, [searchParams, router])
 
   const filteredMedicines = medicines.filter((medicine) =>
     medicine.name.toLowerCase().includes(search.toLowerCase()) ||
     medicine.genericName?.toLowerCase().includes(search.toLowerCase())
   )
 
+  const isExpired = (expiryDate: string | Date | undefined) => {
+    if (!expiryDate) return false
+    const exp = new Date(expiryDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    exp.setHours(0, 0, 0, 0)
+    return exp <= today
+  }
+
   const addToCart = (medicine: any) => {
+    if (isExpired(medicine.expiryDate)) {
+      alert("This product has expired and cannot be sold. Safety policy blocks sale of expired medication.")
+      return
+    }
     const existing = cart.find((item) => item.product === medicine._id)
 
     if (existing) {
@@ -74,6 +109,8 @@ export function POSInterface({ medicines, customers, userId }: POSInterfaceProps
           quantity: 1,
           price: medicine.price,
           subtotal: medicine.price,
+          batchNumber: medicine.batchNumber,
+          expiryDate: medicine.expiryDate,
         },
       ])
     }
@@ -111,37 +148,100 @@ export function POSInterface({ medicines, customers, userId }: POSInterfaceProps
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const total = subtotal - discount
 
+  const buildSalePayload = () => {
+    const payload: Record<string, unknown> = {
+      items: cart,
+      totalAmount: total,
+      paymentMethod,
+      type: saleType,
+      customerName: customers.find((c: any) => c._id === customerId)?.fullName || "Walk-in",
+      cashierId: userId,
+    }
+    if (saleType === "Rx") {
+      payload.prescriptionId = prescriptionId
+      payload.pharmacistLicense = user?.pharmacistLicense
+    }
+    return payload
+  }
+
   const processSale = async () => {
     if (cart.length === 0) {
       alert("Cart is empty")
       return
     }
+    if (saleType === "Rx") {
+      if (!prescriptionId) {
+        alert("Prescription (Rx) sales require selecting a prescription.")
+        return
+      }
+      if (!user?.pharmacistLicense) {
+        alert("Prescription (Rx) sales require the dispensing pharmacist's license. Please set your license in your profile.")
+        return
+      }
+    }
 
     setIsProcessing(true)
     setError(null)
+    setUssdResult(null)
 
     try {
-      const salePayload = {
-        items: cart,
-        totalAmount: total,
-        paymentMethod,
-        type: saleType,
-        customerName: customers.find(c => c._id === customerId)?.fullName || "Walk-in",
-        cashierId: userId
+      const salePayload = buildSalePayload()
+
+      if (paymentMethod === "cash") {
+        const res = await createSale(salePayload)
+        if (res.success) {
+          alert("Sale completed successfully!")
+          setCart([])
+          setCustomerId("")
+          setPrescriptionId("")
+          setDiscount(0)
+          router.refresh()
+        }
+        return
       }
 
-      const res = await createSale(salePayload)
-
-      alert("Sale completed successfully!")
-
-      // Clear cart
-      setCart([])
-      setCustomerId("")
-      setDiscount(0)
-      router.refresh()
+      // Monime: Card, Mobile Money, Bank – redirect to secure checkout
+      const res = await createCheckoutSession(salePayload as any)
+      if (res.success && res.data?.redirectUrl) {
+        window.location.href = res.data.redirectUrl
+        return
+      }
+      throw new Error("No redirect URL received")
     } catch (err: any) {
       setError(err.message)
-      alert("Error processing sale: " + err.message)
+      alert("Error: " + err.message)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handlePayViaUssd = async () => {
+    if (cart.length === 0) {
+      alert("Cart is empty")
+      return
+    }
+    if (saleType === "Rx" && (!prescriptionId || !user?.pharmacistLicense)) {
+      alert("Prescription and pharmacist license required for Rx.")
+      return
+    }
+    setIsProcessing(true)
+    setError(null)
+    setUssdResult(null)
+    try {
+      const salePayload = buildSalePayload()
+      const res = await createUssdCode(salePayload as any)
+      if (res.success && res.data) {
+        setUssdResult({
+          ussdCode: res.data.ussdCode,
+          instructions: res.data.instructions || `Dial ${res.data.ussdCode} to pay Le ${res.data.amount?.toLocaleString()}`,
+          saleId: res.data.saleId,
+        })
+      } else {
+        throw new Error("Failed to create USSD code")
+      }
+    } catch (err: any) {
+      setError(err.message)
+      alert("Error: " + err.message)
     } finally {
       setIsProcessing(false)
     }
@@ -224,7 +324,16 @@ export function POSInterface({ medicines, customers, userId }: POSInterfaceProps
                   cart.map((item) => (
                     <div key={item.product} className="rounded-lg border p-2 text-sm bg-gray-50/50">
                       <div className="mb-1 flex items-start justify-between">
-                        <p className="font-bold text-slate-900">{item.name}</p>
+                        <div>
+                          <p className="font-bold text-slate-900">{item.name}</p>
+                          {(item.batchNumber || item.expiryDate) && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {item.batchNumber && `Batch: ${item.batchNumber}`}
+                              {item.batchNumber && item.expiryDate && " · "}
+                              {item.expiryDate && `Exp: ${new Date(item.expiryDate).toLocaleDateString()}`}
+                            </p>
+                          )}
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -309,7 +418,7 @@ export function POSInterface({ medicines, customers, userId }: POSInterfaceProps
 
               <div className="space-y-2">
                 <Label htmlFor="revenue-type">Revenue Type (for P&L)</Label>
-                <Select value={saleType} onValueChange={setSaleType}>
+                <Select value={saleType} onValueChange={(v) => { setSaleType(v); if (v !== "Rx") setPrescriptionId("") }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -320,6 +429,31 @@ export function POSInterface({ medicines, customers, userId }: POSInterfaceProps
                   </SelectContent>
                 </Select>
               </div>
+
+              {saleType === "Rx" && (
+                <div className="space-y-2">
+                  <Label htmlFor="prescription">Prescription (required for Rx)</Label>
+                  <Select value={prescriptionId} onValueChange={setPrescriptionId} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select prescription" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {prescriptions.length === 0 ? (
+                        <SelectItem value="" disabled>No pending prescriptions</SelectItem>
+                      ) : (
+                        prescriptions.map((rx: any) => (
+                          <SelectItem key={rx._id} value={rx._id}>
+                            {rx.patientName} – Dr. {rx.doctor?.name} ({rx.status})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {!user?.pharmacistLicense && (
+                    <p className="text-xs text-amber-600">Pharmacist license required for Rx. Set it in your profile.</p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="payment">Payment Method</Label>
@@ -338,13 +472,41 @@ export function POSInterface({ medicines, customers, userId }: POSInterfaceProps
 
               {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
+              {paymentMethod !== "cash" && (
+                <p className="text-xs text-muted-foreground">
+                  Pay securely via Monime (card, mobile money, bank). You will be redirected to complete payment.
+                </p>
+              )}
+
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700"
                 onClick={processSale}
                 disabled={cart.length === 0 || isProcessing}
               >
-                {isProcessing ? "Processing..." : "Complete Sale"}
+                {paymentMethod === "cash"
+                  ? (isProcessing ? "Processing..." : "Complete Sale")
+                  : (isProcessing ? "Redirecting..." : "Pay with Card / Mobile Money / Bank")}
               </Button>
+
+              {paymentMethod !== "cash" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handlePayViaUssd}
+                  disabled={cart.length === 0 || isProcessing}
+                >
+                  Get USSD code (pay via phone)
+                </Button>
+              )}
+
+              {ussdResult && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 text-sm">
+                  <p className="font-semibold text-emerald-800">Pay via USSD</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-emerald-700">{ussdResult.ussdCode}</p>
+                  <p className="mt-2 text-muted-foreground">{ussdResult.instructions}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

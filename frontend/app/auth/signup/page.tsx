@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import { signup, login } from "@/lib/authApi"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"

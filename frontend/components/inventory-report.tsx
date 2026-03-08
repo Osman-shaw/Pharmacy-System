@@ -1,7 +1,9 @@
+import React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Package, Clock } from "lucide-react"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 
 interface InventoryReportProps {
   lowStockMedicines: any[]
@@ -27,6 +29,8 @@ export function InventoryReport({ lowStockMedicines, expiringMedicines }: Invent
     const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     return daysUntilExpiry >= 0 && daysUntilExpiry <= 30
   }) || []
+
+  const COLORS = ["#10b981", "#f59e0b", "#ef4444"]
 
   return (
     <div className="space-y-6">
@@ -65,6 +69,56 @@ export function InventoryReport({ lowStockMedicines, expiringMedicines }: Invent
           </CardContent>
         </Card>
       </div>
+
+      {/* Stock Levels Pie Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Stock Levels</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={[{ name: "Critical", value: criticalStock.length }, { name: "Warning", value: warningStock.length }]}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+              >
+                <Cell fill="#ef4444" />
+                <Cell fill="#f59e0b" />
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Expiring Medicines Pie Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Expiring Medicines</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={[{ name: "Expired", value: expired.length }, { name: "Expiring Soon", value: expiringSoon.length }]}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+              >
+                <Cell fill="#ef4444" />
+                <Cell fill="#f59e0b" />
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Low Stock Items */}
       <Card>

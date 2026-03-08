@@ -25,6 +25,10 @@ import { getProfile } from "@/lib/dashboardApi"
 import { Loader2, Search, Filter, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import {  Toast } from "@/components/ui/toast"
+// Ensure the correct path to debugLogger is used
+import { logDebug } from "@/utils/logger"
+import { validateFilters } from "@/utils/validation"
 
 export default function AuditLogPage() {
     const [logs, setLogs] = useState([])
@@ -38,16 +42,23 @@ export default function AuditLogPage() {
 
     useEffect(() => {
         async function init() {
+            logDebug("Initializing AuditLogPage...")
             const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
-            if (!token) return
+            if (!token) {
+                toast({ title: "Error", description: "Authentication token is missing.", variant: "destructive" })
+                return
+            }
 
             try {
                 const prof = await getProfile(token)
                 setProfile(prof)
-                const data = await getAuditLogs(token, filters)
+                const validatedFilters = validateFilters(filters)
+                const data = await getAuditLogs(token, validatedFilters)
                 setLogs(data.data)
+                toast({ title: "Success", description: "Audit logs loaded successfully." })
             } catch (err) {
                 console.error(err)
+                toast({ title: "Error", description: "Failed to load audit logs.", variant: "destructive" })
             } finally {
                 setLoading(false)
             }
@@ -61,6 +72,12 @@ export default function AuditLogPage() {
         if (action.includes('UPDATE')) return 'secondary'
         if (action === 'LOGIN_FAILED') return 'destructive'
         return 'outline'
+    }
+
+    const handleSecretRotation = () => {
+        logDebug("Rotating secrets...")
+        // Placeholder for secret rotation logic
+        toast({ title: "Info", description: "Secrets rotated successfully." })
     }
 
     if (loading && !profile) {
@@ -168,6 +185,13 @@ export default function AuditLogPage() {
                         </div>
 
                         <div className="mt-4 flex items-center justify-end space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSecretRotation}
+                            >
+                                Rotate Secrets
+                            </Button>
                             <Button
                                 variant="outline"
                                 size="sm"

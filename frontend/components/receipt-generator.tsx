@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -11,24 +12,32 @@ import { useState } from "react"
 
 interface ReceiptData {
   sale: {
-    id: string
-    invoice_number: string
-    sale_date: string
-    subtotal: number
-    discount: number
-    total_amount: number
-    payment_method: string
+    id?: string
+    _id?: string
+    transactionId?: string
+    invoice_number?: string
+    date?: string
+    sale_date?: string
+    subtotal?: number
+    discount?: number
+    totalAmount?: number
+    total_amount?: number
+    payment_method?: string
+    paymentMethod?: string
   }
   items: Array<{
-    medicine_name: string
+    name?: string
+    medicine_name?: string
     quantity: number
-    unit_price: number
+    price?: number
+    unit_price?: number
     subtotal: number
   }>
   customer?: {
-    name: string
-    email: string
-    phone: string
+    name?: string
+    fullName?: string
+    email?: string
+    phone?: string
   }
 }
 
@@ -50,7 +59,7 @@ export function ReceiptGenerator({ receiptData, open, onClose }: ReceiptGenerato
         printWindow.document.write(`
           <html>
             <head>
-              <title>Receipt - ${receiptData.sale.invoice_number}</title>
+              <title>Receipt - ${receiptData.sale.transactionId ?? receiptData.sale.invoice_number ?? receiptData.sale._id ?? "receipt"}</title>
               <style>
                 body { font-family: 'Courier New', monospace; padding: 20px; max-width: 400px; }
                 .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
@@ -77,7 +86,7 @@ export function ReceiptGenerator({ receiptData, open, onClose }: ReceiptGenerato
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `receipt-${receiptData.sale.invoice_number}.html`
+      a.download = `receipt-${receiptData.sale.transactionId ?? receiptData.sale.invoice_number ?? receiptData.sale._id ?? "receipt"}.html`
       a.click()
       window.URL.revokeObjectURL(url)
     }
@@ -138,17 +147,17 @@ export function ReceiptGenerator({ receiptData, open, onClose }: ReceiptGenerato
                 <div className="mb-4 space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span>Invoice:</span>
-                    <span className="font-bold">{receiptData.sale.invoice_number}</span>
+                    <span className="font-bold">{receiptData.sale.transactionId ?? receiptData.sale.invoice_number ?? receiptData.sale._id ?? "—"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Date:</span>
-                    <span>{new Date(receiptData.sale.sale_date).toLocaleString()}</span>
+                    <span>{new Date(receiptData.sale.date ?? receiptData.sale.sale_date ?? "").toLocaleString()}</span>
                   </div>
                   {receiptData.customer && (
                     <>
                       <div className="flex justify-between">
                         <span>Customer:</span>
-                        <span>{receiptData.customer.name}</span>
+                        <span>{receiptData.customer.name ?? receiptData.customer.fullName ?? "—"}</span>
                       </div>
                       {receiptData.customer.phone && (
                         <div className="flex justify-between">
@@ -160,7 +169,7 @@ export function ReceiptGenerator({ receiptData, open, onClose }: ReceiptGenerato
                   )}
                   <div className="flex justify-between">
                     <span>Payment:</span>
-                    <span className="capitalize">{receiptData.sale.payment_method.replace("_", " ")}</span>
+                    <span className="capitalize">{(receiptData.sale.paymentMethod ?? receiptData.sale.payment_method ?? "").replace(/_/g, " ")}</span>
                   </div>
                 </div>
 
@@ -173,7 +182,7 @@ export function ReceiptGenerator({ receiptData, open, onClose }: ReceiptGenerato
                   </div>
                   {receiptData.items.map((item, index) => (
                     <div key={index} className="mb-2 space-y-1">
-                      <div className="text-xs font-medium">{item.medicine_name}</div>
+                      <div className="text-xs font-medium">{item.name ?? item.medicine_name ?? "—"}</div>
                       <div className="flex justify-between text-xs">
                         <span></span>
                         <span>{item.quantity}</span>
@@ -187,17 +196,17 @@ export function ReceiptGenerator({ receiptData, open, onClose }: ReceiptGenerato
                 <div className="total border-t-2 border-gray-800 pt-2 text-xs">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>Le {receiptData.sale.subtotal.toFixed(2)}</span>
+                    <span>Le {(receiptData.sale.subtotal ?? receiptData.sale.totalAmount ?? receiptData.sale.total_amount ?? 0).toFixed(2)}</span>
                   </div>
-                  {receiptData.sale.discount > 0 && (
+                  {Number(receiptData.sale.discount ?? 0) > 0 && (
                     <div className="flex justify-between">
                       <span>Discount:</span>
-                      <span>- Le {receiptData.sale.discount.toFixed(2)}</span>
+                      <span>- Le {(receiptData.sale.discount ?? 0).toFixed(2)}</span>
                     </div>
                   )}
                   <div className="mt-2 flex justify-between text-base font-bold">
                     <span>TOTAL:</span>
-                    <span>Le {receiptData.sale.total_amount.toFixed(2)}</span>
+                    <span>Le {(receiptData.sale.totalAmount ?? receiptData.sale.total_amount ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
 

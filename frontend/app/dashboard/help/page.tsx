@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState } from "react"
 import { HelpSidebar } from "@/components/help/help-sidebar"
 import { HelpContent } from "@/components/help/help-content"

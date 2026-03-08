@@ -1,6 +1,8 @@
 "use client"
 
-import type React from "react"
+import React from "react"
+import type { FormEvent } from "react"
+import { useState } from "react"
 import { login } from "@/lib/authApi"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -9,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -18,7 +20,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)

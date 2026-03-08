@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { helpCategories, getArticlesByCategory, type HelpArticle } from "@/lib/helpData"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"

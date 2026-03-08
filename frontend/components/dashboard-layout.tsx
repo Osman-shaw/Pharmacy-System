@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 
 import { logout } from "@/lib/logout"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,12 @@ interface DashboardLayoutProps {
   userRole?: string
   userName?: string
   userImage?: string
+  user?: {
+    id: string
+    username: string
+    role: string
+    fullName: string
+  }
 }
 
 export function DashboardLayout({ children, userRole, userName, userImage }: DashboardLayoutProps) {
@@ -64,13 +70,13 @@ export function DashboardLayout({ children, userRole, userName, userImage }: Das
       name: "Point of Sale",
       href: "/dashboard/pos",
       icon: ShoppingCart,
-      roles: ["admin", "pharmacist"],
+      roles: ["admin", "pharmacist", "cashier"],
     },
     {
       name: "Customers",
       href: "/dashboard/customers",
       icon: Users,
-      roles: ["admin", "pharmacist"],
+      roles: ["admin", "pharmacist", "cashier"],
     },
     {
       name: "Prescriptions",
@@ -82,7 +88,7 @@ export function DashboardLayout({ children, userRole, userName, userImage }: Das
       name: "Sales History",
       href: "/dashboard/sales",
       icon: Receipt,
-      roles: ["admin", "pharmacist"],
+      roles: ["admin", "pharmacist", "cashier"],
     },
     {
       name: "Reports",

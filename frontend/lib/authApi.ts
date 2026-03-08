@@ -9,7 +9,16 @@ export async function login(email: string, password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username: email, password })
   });
-  if (!res.ok) throw new Error("Invalid credentials");
+  if (!res.ok) {
+    let message = "Invalid credentials"
+    try {
+      const data = await res.json()
+      if (data?.message) message = data.message
+    } catch {
+      if (res.status === 0 || res.type === "error") message = "Cannot reach server. Is the backend running?"
+    }
+    throw new Error(message)
+  }
   return res.json();
 }
 

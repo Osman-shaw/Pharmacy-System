@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, useEffect } from "react"
 import { getPurchases } from "@/lib/purchasesApi"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -150,8 +151,8 @@ export function PurchaseReport() {
             <div className="flex-1 min-w-[200px]">
               <Label>Period Type</Label>
               <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger aria-label="Report period type">
+                  <SelectValue placeholder="Select period" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="monthly">Last 30 Days</SelectItem>
@@ -248,6 +249,42 @@ export function PurchaseReport() {
               <YAxis dataKey="name" type="category" width={150} />
               <Tooltip />
               <Bar dataKey="spent" fill="#10b981" name="Total Spent (Le)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Total Spending Bar Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Total Spending by Supplier</CardTitle>
+          <CardDescription>Bar chart of total spending per supplier</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={purchaseData}>
+              <XAxis dataKey="supplierName" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="totalAmount" fill="#10b981" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Supplier Contributions Bar Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Supplier Contributions</CardTitle>
+          <CardDescription>Bar chart of supplier contributions to total spending</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={topSuppliers}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#3b82f6" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

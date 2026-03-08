@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -12,17 +13,18 @@ interface SalesReportProps {
 
 export function SalesReport({ sales, topMedicines }: SalesReportProps) {
   // Calculate statistics
-  const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total), 0)
+  const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount ?? sale.total ?? 0), 0)
   const totalSales = sales.length
   const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0
 
-  // Group sales by date for daily revenue
+  // Group sales by date for daily revenue (backend uses date, totalAmount)
   const salesByDate = sales.reduce((acc: any, sale) => {
-    const date = new Date(sale.sale_date).toLocaleDateString()
+    const saleDate = sale.date ?? sale.sale_date ?? sale.createdAt
+    const date = new Date(saleDate).toLocaleDateString()
     if (!acc[date]) {
       acc[date] = { date, revenue: 0, count: 0 }
     }
-    acc[date].revenue += Number(sale.total)
+    acc[date].revenue += Number(sale.totalAmount ?? sale.total ?? 0)
     acc[date].count += 1
     return acc
   }, {})
@@ -195,9 +197,9 @@ export function SalesReport({ sales, topMedicines }: SalesReportProps) {
               {sales.slice(0, 10).map((sale) => (
                 <TableRow key={sale.id}>
                   <TableCell className="font-medium">{sale.invoice_number}</TableCell>
-                  <TableCell>{new Date(sale.sale_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(sale.date ?? sale.sale_date ?? sale.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="capitalize">{sale.payment_method.replace("_", " ")}</TableCell>
-                  <TableCell className="text-right font-medium">Le {Number(sale.total).toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-medium">Le {Number(sale.totalAmount ?? sale.total ?? 0).toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

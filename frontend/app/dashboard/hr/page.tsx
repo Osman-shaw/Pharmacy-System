@@ -1,3 +1,4 @@
+import React from "react"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { getProfile } from "@/lib/dashboardApi"

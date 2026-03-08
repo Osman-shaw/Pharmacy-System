@@ -18,7 +18,7 @@ export async function getProfile(token?: string) {
   return res.json();
 }
 
-// Fetch dashboard statistics
+// Fetch dashboard statistics (returns { medicineCount, customerCount, todaySalesCount, todayRevenue })
 export async function getDashboardStats(token?: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json"
@@ -32,7 +32,8 @@ export async function getDashboardStats(token?: string) {
     headers
   });
   if (!res.ok) throw new Error("Failed to fetch stats");
-  return res.json();
+  const json = await res.json();
+  return json.success ? json.data : {};
 }
 
 // Fetch low stock medicines
@@ -94,7 +95,7 @@ export async function getNotificationData(token?: string) {
   }
 }
 
-// Fetch pending prescriptions
+// Fetch pending prescriptions (returns array of prescriptions)
 export async function getPendingPrescriptions(token?: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json"
@@ -108,5 +109,6 @@ export async function getPendingPrescriptions(token?: string) {
     headers
   });
   if (!res.ok) throw new Error("Failed to fetch pending prescriptions");
-  return res.json();
+  const json = await res.json();
+  return json.success && Array.isArray(json.data) ? json.data : [];
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -9,18 +10,20 @@ import { Eye, Search } from "lucide-react"
 import Link from "next/link"
 
 interface Sale {
-  id: string
-  invoice_number: string
-  customer_id?: string
-  total_amount: number
-  payment_method: string
-  created_at: string
-  customers?: {
-    name: string
-  }
-  profiles: {
-    full_name: string
-  }
+  _id: string
+  id?: string
+  date: string
+  totalAmount: number
+  paymentMethod: string
+  customerName?: string
+  transactionId?: string
+  cashier?: { fullName?: string }
+  // Legacy fallbacks
+  invoice_number?: string
+  total_amount?: number
+  created_at?: string
+  customers?: { name?: string }
+  profiles?: { full_name?: string }
 }
 
 interface SalesTableProps {
@@ -32,9 +35,9 @@ export function SalesTable({ sales }: SalesTableProps) {
 
   const filteredSales = sales.filter(
     (sale) =>
-      sale.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-      sale.customers?.name.toLowerCase().includes(search.toLowerCase()) ||
-      sale.payment_method.toLowerCase().includes(search.toLowerCase()),
+      (sale.transactionId ?? sale.invoice_number ?? sale._id ?? "").toString().toLowerCase().includes(search.toLowerCase()) ||
+      (sale.customerName ?? sale.customers?.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (sale.paymentMethod ?? sale.payment_method ?? "").toLowerCase().includes(search.toLowerCase()),
   )
 
   return (
@@ -73,17 +76,17 @@ export function SalesTable({ sales }: SalesTableProps) {
               </TableRow>
             ) : (
               filteredSales.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell className="font-medium">{sale.invoice_number}</TableCell>
-                  <TableCell>{sale.customers?.name || "Walk-in Customer"}</TableCell>
-                  <TableCell className="font-bold">Le {sale.total_amount.toLocaleString()}</TableCell>
+                <TableRow key={sale._id ?? sale.id}>
+                  <TableCell className="font-medium">{sale.transactionId ?? sale.invoice_number ?? sale._id?.slice(-8) ?? "—"}</TableCell>
+                  <TableCell>{sale.customerName ?? sale.customers?.name ?? "Walk-in Customer"}</TableCell>
+                  <TableCell className="font-bold">Le {(sale.totalAmount ?? sale.total_amount ?? 0).toLocaleString()}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{sale.payment_method}</Badge>
+                    <Badge variant="outline">{sale.paymentMethod ?? sale.payment_method ?? "—"}</Badge>
                   </TableCell>
-                  <TableCell>{sale.profiles.full_name}</TableCell>
-                  <TableCell>{new Date(sale.created_at).toLocaleString()}</TableCell>
+                  <TableCell>{sale.cashier?.fullName ?? sale.profiles?.full_name ?? "—"}</TableCell>
+                  <TableCell>{new Date(sale.date ?? sale.created_at ?? "").toLocaleString()}</TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/dashboard/sales/${sale.id}`}>
+                    <Link href={`/dashboard/sales/${sale._id ?? sale.id}`}>
                       <Button variant="ghost" size="icon">
                         <Eye className="h-4 w-4" />
                       </Button>

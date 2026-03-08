@@ -1,3 +1,4 @@
+import React from "react"
 import { redirect } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { StatCard } from "@/components/stat-card"
@@ -38,7 +39,10 @@ export default async function DashboardPage() {
   const pendingPrescriptions = await getPendingPrescriptions(token)
 
   return (
-    <DashboardLayout userRole={profile?.role} userName={profile?.fullName}>
+    <DashboardLayout
+      userRole={profile?.role != null ? String(profile.role) : undefined}
+      userName={profile?.fullName != null ? String(profile.fullName) : undefined}
+    >
       <div className="space-y-6">
         <OutOfStockBanner />
 
@@ -81,9 +85,9 @@ export default async function DashboardPage() {
                       className="flex items-center justify-between border-b pb-2 last:border-0"
                     >
                       <div>
-                        <p className="font-medium text-sm">{medicine.name || medicine.medicine_name}</p>
+                        <p className="font-medium text-sm">{medicine.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Current: {medicine.total_quantity} | Reorder: {medicine.reorder_level}
+                          Current: {medicine.stock} | Reorder: {medicine.lowStockThreshold ?? 10}
                         </p>
                       </div>
                       <Badge variant="destructive">Low</Badge>
@@ -108,22 +112,28 @@ export default async function DashboardPage() {
             <CardContent>
               {expiringMedicines && expiringMedicines.length > 0 ? (
                 <div className="space-y-3">
-                  {expiringMedicines.slice(0, 5).map((medicine: any) => (
-                    <div
-                      key={`${medicine._id || medicine.medicine_id}-${medicine.batch_number}`}
-                      className="flex items-center justify-between border-b pb-2 last:border-0"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{medicine.name || medicine.medicine_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Batch: {medicine.batch_number} | Qty: {medicine.quantity}
-                        </p>
+                  {expiringMedicines.slice(0, 5).map((medicine: any) => {
+                    const expiryDate = medicine.expiryDate ? new Date(medicine.expiryDate) : null
+                    const daysUntilExpiry = expiryDate
+                      ? Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null
+                    return (
+                      <div
+                        key={`${medicine._id || medicine.medicine_id}-${medicine.batchNumber || medicine.batch_number}`}
+                        className="flex items-center justify-between border-b pb-2 last:border-0"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{medicine.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Batch: {medicine.batchNumber ?? medicine.batch_number ?? "—"} | Qty: {medicine.stock ?? medicine.quantity}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-orange-600">
+                          {daysUntilExpiry != null ? `${daysUntilExpiry}d` : "Soon"}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="text-orange-600">
-                        {medicine.days_until_expiry}d
-                      </Badge>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No medicines expiring soon</p>
@@ -144,9 +154,9 @@ export default async function DashboardPage() {
                 {pendingPrescriptions.map((prescription: any) => (
                   <div key={prescription._id || prescription.id} className="flex items-center justify-between border-b pb-3 last:border-0">
                     <div>
-                      <p className="font-medium">{prescription.prescription_number}</p>
+                      <p className="font-medium">{prescription.prescription_number || prescription._id?.slice(-8) || "—"}</p>
                       <p className="text-sm text-muted-foreground">
-                        Patient: {prescription.patient_name || prescription.customers?.name} | Doctor: {prescription.doctor_name}
+                        Patient: {prescription.patientName || prescription.patient?.fullName} | Doctor: {prescription.doctor?.name ?? prescription.doctorName ?? "N/A"}
                       </p>
                     </div>
                     <Badge>Pending</Badge>

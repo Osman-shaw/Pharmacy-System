@@ -1,4 +1,5 @@
 
+import React from "react"
 import { redirect } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { SalesTable } from "@/components/sales-table"
@@ -16,18 +17,22 @@ export default async function SalesPage() {
   // 1. Check user session/profile
   let profile = null
   try {
-    profile = await getProfile(token)
+    const profileRes = await getProfile(token)
+    profile = profileRes.data ?? profileRes
   } catch {
     // Not authenticated, redirect to login
     redirect("/auth/login")
   }
 
-  // 2. Fetch all sales with customer and user info
+  // 2. Fetch all sales (backend returns { success, data, pagination })
   const salesResponse = await getSales(token)
-  const sales = salesResponse.data || []
+  const sales = Array.isArray(salesResponse?.data) ? salesResponse.data : []
 
   return (
-    <DashboardLayout userRole={profile?.role} userName={profile?.fullName}>
+    <DashboardLayout
+      userRole={profile?.role != null ? String(profile.role) : undefined}
+      userName={profile?.fullName != null ? String(profile.fullName) : undefined}
+    >
       <div className="space-y-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Sales History</h2>

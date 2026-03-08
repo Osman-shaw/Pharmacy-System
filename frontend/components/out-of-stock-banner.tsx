@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useState } from "react"
 import { AlertTriangle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,9 +14,10 @@ export function OutOfStockBanner() {
   useEffect(() => {
     const checkStock = async () => {
       try {
-        const response = await getLowStockMedicines()
-        if (response && response.data) {
-          const outOfStock = response.data.filter((med: any) => (med.total_quantity || med.quantity || med.stock) === 0)
+        const data = await getLowStockMedicines()
+        const list = Array.isArray(data) ? data : (data as any)?.data
+        if (Array.isArray(list)) {
+          const outOfStock = list.filter((med: any) => (med.stock ?? med.total_quantity ?? med.quantity) === 0)
           setOutOfStockCount(outOfStock.length)
         }
       } catch (error) {
