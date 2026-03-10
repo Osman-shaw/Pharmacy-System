@@ -1,10 +1,7 @@
 import React from "react"
 import { redirect } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { AdvancedSalesReport } from "@/components/advanced-sales-report"
-import { PurchaseReport } from "@/components/purchase-report"
-import { InventoryReport } from "@/components/inventory-report"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ReportsContent } from "@/components/reports-content"
 import { cookies } from "next/headers"
 import { getProfile, getLowStockMedicines, getExpiringMedicines } from "@/lib/dashboardApi"
 
@@ -28,41 +25,18 @@ export default async function ReportsPage() {
     redirect("/dashboard")
   }
 
-  // Fetch inventory data for reports
   const lowStockMedicines = await getLowStockMedicines(token)
-  const expiringMedicines = await getExpiringMedicines(60, token) // 60 days for report
+  const expiringMedicines = await getExpiringMedicines(60, token)
 
   return (
-    <DashboardLayout userRole={profile?.role} userName={profile?.fullName || profile?.full_name}>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Reports & Analytics</h2>
-          <p className="text-muted-foreground">Comprehensive business insights and analytics</p>
-        </div>
-
-        <Tabs defaultValue="sales" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="sales">Sales Reports</TabsTrigger>
-            <TabsTrigger value="purchase">Purchase Reports</TabsTrigger>
-            <TabsTrigger value="inventory">Inventory Reports</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="sales" className="space-y-4">
-            <AdvancedSalesReport />
-          </TabsContent>
-
-          <TabsContent value="purchase" className="space-y-4">
-            <PurchaseReport />
-          </TabsContent>
-
-          <TabsContent value="inventory" className="space-y-4">
-            <InventoryReport
-              lowStockMedicines={lowStockMedicines || []}
-              expiringMedicines={expiringMedicines || []}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+    <DashboardLayout
+      userRole={profile?.role != null ? String(profile.role) : undefined}
+      userName={profile?.fullName != null ? String(profile.fullName) : profile?.full_name}
+    >
+      <ReportsContent
+        lowStockMedicines={lowStockMedicines || []}
+        expiringMedicines={expiringMedicines || []}
+      />
     </DashboardLayout>
   )
 }

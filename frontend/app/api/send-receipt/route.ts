@@ -79,15 +79,15 @@ export async function POST(request: NextRequest) {
 
     // In a real implementation, you would use a service like Resend, SendGrid, or AWS SES
     // For now, we'll simulate the email sending
-    console.log("[v0] Sending receipt to:", email)
-    console.log("[v0] Receipt data:", receiptData)
+    console.log(" Sending receipt to:", email)
+    console.log("Email Receipt data:", receiptData)
 
     // Simulate email sending delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     return NextResponse.json({ success: true, message: "Receipt sent successfully" })
   } catch (error: any) {
-    console.error("[v0] Error sending receipt:", error)
+    console.error(" Error sending receipt:", error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

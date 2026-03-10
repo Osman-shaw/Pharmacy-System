@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,11 +23,10 @@ import {
 } from "@/components/ui/select"
 import { getAuditLogs } from "@/lib/auditApi"
 import { getProfile } from "@/lib/dashboardApi"
-import { Loader2, Search, Filter, Shield } from "lucide-react"
+import { Loader2, Search, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import {  Toast } from "@/components/ui/toast"
-// Ensure the correct path to debugLogger is used
+import { toast } from "sonner"
 import { logDebug } from "@/utils/logger"
 import { validateFilters } from "@/utils/validation"
 
@@ -45,20 +45,20 @@ export default function AuditLogPage() {
             logDebug("Initializing AuditLogPage...")
             const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
             if (!token) {
-                toast({ title: "Error", description: "Authentication token is missing.", variant: "destructive" })
+                toast.error("Authentication token is missing.")
                 return
             }
 
             try {
                 const prof = await getProfile(token)
-                setProfile(prof)
+                setProfile(prof?.data ?? prof)
                 const validatedFilters = validateFilters(filters)
                 const data = await getAuditLogs(token, validatedFilters)
-                setLogs(data.data)
-                toast({ title: "Success", description: "Audit logs loaded successfully." })
+                setLogs(data?.data ?? [])
+                toast.success("Audit logs loaded successfully.")
             } catch (err) {
                 console.error(err)
-                toast({ title: "Error", description: "Failed to load audit logs.", variant: "destructive" })
+                toast.error("Failed to load audit logs.")
             } finally {
                 setLoading(false)
             }
@@ -77,7 +77,7 @@ export default function AuditLogPage() {
     const handleSecretRotation = () => {
         logDebug("Rotating secrets...")
         // Placeholder for secret rotation logic
-        toast({ title: "Info", description: "Secrets rotated successfully." })
+        toast.success("Secrets rotated successfully.")
     }
 
     if (loading && !profile) {
